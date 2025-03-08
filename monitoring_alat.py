@@ -52,12 +52,21 @@ st.dataframe(df)
 
 # Buat Grafik (jika data cukup)
 if not df.empty:
-    if len(df.columns) >= 2:
-        col1, col2 = df.columns[:2]  # Ambil 2 kolom pertama sebagai contoh
-        df[col2] = pd.to_numeric(df[col2], errors="coerce")  # Pastikan kolom angka dalam format numerik
-        fig = px.line(df, x=col1, y=col2, title=f"Grafik {col2} berdasarkan {col1}")
+    numeric_columns = df.select_dtypes(include=['object']).columns
+    for col in numeric_columns:
+        try:
+            df[col] = pd.to_numeric(df[col])
+        except:
+            pass
+
+# Pilih kolom untuk grafik
+    all_columns = df.columns.tolist()
+    x_axis = st.selectbox("Pilih X-Axis:", all_columns)
+    y_axis = st.selectbox("Pilih Y-Axis:", all_columns)
+
+    if x_axis and y_axis:
+        fig = px.line(df, x=x_axis, y=y_axis, title=f"Grafik {y_axis} vs {x_axis}")
         st.plotly_chart(fig)
+
     else:
-        st.warning("Data tidak cukup untuk membuat grafik.")
-else:
-    st.error("Data tidak tersedia.")
+        st.warning("Data tidak ditemukan di sheet ini.")
