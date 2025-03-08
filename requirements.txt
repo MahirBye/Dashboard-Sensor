@@ -2,5 +2,4 @@ streamlit
 plotly
 pandas
 requests
-load_dotenv
-os
+python-dotenv
