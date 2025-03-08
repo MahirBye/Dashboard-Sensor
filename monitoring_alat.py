@@ -1,63 +1,63 @@
+import os
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import requests
-import os
 from dotenv import load_dotenv
+import plotly.express as px
 
-# Load API Key dari .env
+# Load variabel dari .env
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 
-# Ambil SEMUA data tanpa batas range
-URL = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}/values/A:Z?key={API_KEY}"
+# URL untuk mendapatkan daftar sheet
+SHEET_METADATA_URL = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}?key={API_KEY}"
 
-# Fungsi untuk mengambil data dari Google Sheets
+# Fungsi untuk mendapatkan daftar sheet
+def get_sheets():
+    response = requests.get(SHEET_METADATA_URL)
+    if response.status_code == 200:
+        sheets = response.json().get("sheets", [])
+        return [sheet["properties"]["title"] for sheet in sheets]
+    else:
+        st.error("Gagal mengambil daftar sheet")
+        return []
+
+# Fungsi untuk mengambil data dari satu sheet
 @st.cache_data
-def get_data():
-    response = requests.get(URL)
+def get_data(sheet_name):
+    url = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}/values/{sheet_name}?key={API_KEY}"
+    response = requests.get(url)
     if response.status_code == 200:
         data = response.json().get("values", [])
-        df = pd.DataFrame(data[1:], columns=data[0])  # Baris pertama sebagai header
+        df = pd.DataFrame(data[1:], columns=data[0])  # Gunakan baris pertama sebagai header
         return df
     else:
+        st.error(f"Gagal mengambil data dari sheet: {sheet_name}")
         return pd.DataFrame()
 
-# Ambil data
-df = get_data()
+# Ambil semua sheet
+sheets = get_sheets()
 
-# Sidebar menu
-st.sidebar.title("📌 Menu Navigasi")
-menu = st.sidebar.radio("Pilih Halaman:", ["Home", "Data", "Grafik", "Tentang"])
+# Pilih sheet yang akan ditampilkan
+selected_sheet = st.sidebar.selectbox("Pilih Sheet", sheets)
 
-# Halaman Home
-if menu == "Home":
-    st.title("🏠 Home")
-    st.write("Selamat datang di Dashboard!")
+# Ambil data dari sheet yang dipilih
+df = get_data(selected_sheet)
 
-# Halaman Data
-elif menu == "Data":
-    st.title("📊 Data dari Google Sheets")
-    if not df.empty:
-        st.dataframe(df)
+# Tampilkan data
+st.title("📊 Dashboard Data Google Sheets")
+st.write(f"Menampilkan data dari sheet: **{selected_sheet}**")
+st.dataframe(df)
+
+# Buat Grafik (jika data cukup)
+if not df.empty:
+    if len(df.columns) >= 2:
+        col1, col2 = df.columns[:2]  # Ambil 2 kolom pertama sebagai contoh
+        df[col2] = pd.to_numeric(df[col2], errors="coerce")  # Pastikan kolom angka dalam format numerik
+        fig = px.line(df, x=col1, y=col2, title=f"Grafik {col2} berdasarkan {col1}")
+        st.plotly_chart(fig)
     else:
-        st.error("Gagal mengambil data dari Google Sheets.")
-
-# Halaman Grafik
-elif menu == "Grafik":
-    st.title("📈 Grafik Data")
-    if not df.empty:
-        try:
-            df["Value"] = pd.to_numeric(df["Value"])  # Sesuaikan dengan nama kolom di Sheets
-            fig = px.line(df, x="Date", y="Value", title="Grafik Data dari Google Sheets")
-            st.plotly_chart(fig)
-        except KeyError:
-            st.error("Pastikan kolom 'Date' dan 'Value' ada dalam Google Sheets.")
-    else:
-        st.error("Tidak ada data untuk ditampilkan.")
-
-# Halaman Tentang
-elif menu == "Tentang":
-    st.title("ℹ️ Tentang")
-    st.write("Aplikasi ini dibuat untuk menampilkan data dari Google Sheets ke dalam dashboard menggunakan Streamlit.")
+        st.warning("Data tidak cukup untuk membuat grafik.")
+else:
+    st.error("Data tidak tersedia.")
