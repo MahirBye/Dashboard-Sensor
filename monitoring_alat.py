@@ -4,6 +4,7 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 import plotly.express as px
+import time
 
 # Load variabel dari .env
 load_dotenv()
@@ -42,22 +43,30 @@ sheets = get_sheets()
 # Pilih sheet yang akan ditampilkan
 selected_sheet = st.sidebar.selectbox("Pilih Sheet", sheets)
 
-# Ambil data dari sheet yang dipilih
-df = get_data(selected_sheet)
+# Placeholder untuk update real-time
+data_placeholder = st.empty()
 
-# Tampilkan data
-st.title("📊 Dashboard Data Google Sheets")
-st.write(f"Menampilkan data dari sheet: **{selected_sheet}**")
-st.dataframe(df[1:])
+while True:
+    # Ambil data dari sheet yang dipilih
+    df = get_data(selected_sheet)
 
-# Buat Grafik (jika data cukup)
-if not df.empty:
-    if len(df.columns) >= 2:
-        col1, col2 = df.columns[:2]  # Ambil 2 kolom pertama sebagai contoh
-        df[col2] = pd.to_numeric(df[col2], errors="coerce")  # Pastikan kolom angka dalam format numerik
-        fig = px.line(df, x=col1, y=col2, title=f"Grafik {col2} berdasarkan {col1}")
-        st.plotly_chart(fig)
-    else:
-        st.warning("Data tidak cukup untuk membuat grafik.")
-else:
-    st.error("Data tidak tersedia.")
+    with data_placeholder.container():
+        # Tampilkan data
+        st.title("📊 Dashboard Data Google Sheets")
+        st.write(f"Menampilkan data dari sheet: **{selected_sheet}**")
+        st.dataframe(df)
+
+        # Buat Grafik (jika data cukup)
+        if not df.empty:
+            if len(df.columns) >= 2:
+                col1, col2 = df.columns[:2]  # Ambil 2 kolom pertama sebagai contoh
+                df[col2] = pd.to_numeric(df[col2], errors="coerce")  # Pastikan kolom angka dalam format numerik
+                fig = px.line(df, x=col1, y=col2, title=f"Grafik {col2} berdasarkan {col1}")
+                st.plotly_chart(fig)
+            else:
+                st.warning("Data tidak cukup untuk membuat grafik.")
+        else:
+            st.error("Data tidak tersedia.")
+
+    # Auto-refresh setiap 5 detik
+    time.sleep(5)
