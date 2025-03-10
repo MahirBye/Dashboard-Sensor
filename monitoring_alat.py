@@ -30,7 +30,7 @@ def get_data(sheet_name):
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json().get("values", [])
-        df = pd.DataFrame(data[1:], columns=data[1])  # Gunakan baris pertama sebagai header
+        df = pd.DataFrame(data[2:], columns=data[1])  # Gunakan baris pertama sebagai header
         return df
     else:
         st.error(f"Gagal mengambil data dari sheet: {sheet_name}")
