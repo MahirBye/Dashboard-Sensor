@@ -4,7 +4,6 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 import plotly.express as px
-from streamlit_extras.metric_cards import style_metric_cards
 
 # Load variabel dari .env
 load_dotenv()
@@ -31,7 +30,7 @@ def get_data(sheet_name):
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json().get("values", [])
-        df = pd.DataFrame(data[1:], columns=data[0])
+        df = pd.DataFrame(data[1:], columns=data[0])  # Gunakan baris pertama sebagai header
         return df
     else:
         st.error(f"Gagal mengambil data dari sheet: {sheet_name}")
@@ -46,44 +45,32 @@ selected_sheet = st.sidebar.selectbox("Pilih Sheet", sheets)
 # Ambil data dari sheet yang dipilih
 df = get_data(selected_sheet)
 
-# Tampilkan judul dan deskripsi
-st.title("📊 Dashboard Monitoring Real-Time")
-st.markdown("### Data real-time penggunaan alat laboratorium")
+# Tampilkan data
+st.title("📊 Dashboard Data Google Sheets")
+st.write(f"Menampilkan data dari sheet: **{selected_sheet}**")
+st.dataframe(df)
 
-# Tampilkan metric/gauge untuk data real-time
+# Tampilkan data realtime dalam bentuk metric
 if not df.empty:
-    latest_data = df.iloc[-1]
-    col1, col2, col3 = st.columns(3)
-    st.write(latest_data)
+    latest_data = df.iloc[-1]  # Ambil baris terakhir sebagai data terbaru
 
-    with col1:
-        st.metric(label="⚡ Tegangan (V)", value=latest_data["Voltage"])
-    with col2:
-        st.metric(label="💡 Arus (A)", value=latest_data["Current"])
-    with col3:
-        st.metric(label="🔋 Daya Aktif (W)", value=latest_data["Activepower"])
+    st.metric(label="⚡ Tegangan (V)", value=latest_data["Tegangan (V)"])
+    st.metric(label="💡 Arus (A)", value=latest_data["Arus (A)"])
+    st.metric(label="🔋 Daya Aktif (W)", value=latest_data["Daya Aktif (W)"])
+    st.metric(label="🔌 Energi Aktif (Wh)", value=latest_data["Energi Aktif (Wh)"])
+    st.metric(label="📊 Frekuensi (Hz)", value=latest_data["Frekuensi (Hz)"])
+    st.metric(label="💠 Faktor Daya", value=latest_data["Faktor Daya"])
+    st.metric(label="⚙️ Daya Reaktif (VAR)", value=latest_data["Daya Reaktif (VAR)"])
+    st.metric(label="🔷 Daya Semu (VAR)", value=latest_data["Daya Semu (VAR)"])
 
-    style_metric_cards(border_color="#4CAF50", background_color="#E8F5E9", border_radius_px=10)
-
-# Tampilkan tabel data
-st.markdown("### Tabel Data")
-st.dataframe(df, use_container_width=True)
-
-# Visualisasi grafik
-if not df.empty:
-    numeric_columns = df.select_dtypes(include=['object']).columns
-    for col in numeric_columns:
-        try:
-            df[col] = pd.to_numeric(df[col])
-        except:
-            pass
-
+# Pilih kolom untuk grafik
     all_columns = df.columns.tolist()
     x_axis = st.selectbox("Pilih X-Axis:", all_columns)
     y_axis = st.selectbox("Pilih Y-Axis:", all_columns)
 
     if x_axis and y_axis:
-        fig = px.line(df, x=x_axis, y=y_axis, title=f"Grafik {y_axis} vs {x_axis}", markers=True)
-        st.plotly_chart(fig, use_container_width=True)
+        fig = px.line(df, x=x_axis, y=y_axis, title=f"Grafik {y_axis} vs {x_axis}")
+        st.plotly_chart(fig)
+
     else:
-        st.warning("Pilih kolom untuk visualisasi.")
+        st.warning("Data tidak ditemukan di sheet ini.")
