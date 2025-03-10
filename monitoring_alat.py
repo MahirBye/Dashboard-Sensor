@@ -20,7 +20,7 @@ def get_sheets():
         sheets = response.json().get("sheets", [])
         return [sheet["properties"]["title"] for sheet in sheets]
     else:
-        st.error("Gagal mengambil daftar sheet")
+        st.error("❌ Gagal mengambil daftar sheet")
         return []
 
 # Fungsi untuk mengambil data dari satu sheet
@@ -33,41 +33,60 @@ def get_data(sheet_name):
         df = pd.DataFrame(data[1:], columns=data[0])  # Gunakan baris pertama sebagai header
         return df
     else:
-        st.error(f"Gagal mengambil data dari sheet: {sheet_name}")
+        st.error(f"❌ Gagal mengambil data dari sheet: {sheet_name}")
         return pd.DataFrame()
+
+# Sidebar styling
+st.sidebar.markdown("## 🗂 Pilih Data")
 
 # Ambil semua sheet
 sheets = get_sheets()
 
-# Sidebar dengan style
-st.sidebar.title("📂 Pilihan Sheet")
-st.sidebar.markdown("Pilih sheet untuk menampilkan data dan visualisasi")
-
 # Pilih sheet yang akan ditampilkan
-selected_sheet = st.sidebar.selectbox("Pilih Sheet", sheets)
+selected_sheet = st.sidebar.selectbox("📄 Pilih Sheet", sheets)
 
 # Ambil data dari sheet yang dipilih
 df = get_data(selected_sheet)
 
-# Tampilkan data dengan style yang lebih menarik
-st.title("📊 Dashboard Data Google Sheets")
-st.markdown(f"### Menampilkan data dari sheet: **{selected_sheet}**")
+# Custom page title and style
+st.markdown("""
+    <style>
+        .main-title {
+            text-align: center;
+            color: #4CAF50;
+            font-size: 2.5rem;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
+st.markdown("<h1 class='main-title'>📊 Dashboard Data Google Sheets</h1>", unsafe_allow_html=True)
+
+# Tampilkan data
+st.write(f"### Menampilkan data dari sheet: **{selected_sheet}**")
 if not df.empty:
-    st.dataframe(df.style.set_table_styles(
-        [{'selector': 'thead th', 'props': [('background-color', '#4CAF50'), ('color', 'white')]}]
-    ))
-
-    # Pilih kolom untuk grafik
-    all_columns = df.columns.tolist()
-    x_axis = st.selectbox("🧩 Pilih X-Axis:", all_columns)
-    y_axis = st.selectbox("📈 Pilih Y-Axis:", all_columns)
-
-    if x_axis and y_axis:
-        fig = px.line(df, x=x_axis, y=y_axis, title=f"{y_axis} vs {x_axis}", markers=True)
-        st.plotly_chart(fig)
-
-    st.markdown("---")
-    st.info("🔍 Gunakan sidebar untuk mengganti sheet dan melihat data lain.")
+    st.dataframe(df.style.set_properties(**{'background-color': '#f4f4f4', 'border-color': '#4CAF50'}))
 else:
     st.warning("⚠️ Data tidak ditemukan di sheet ini.")
+
+# Pilih kolom untuk grafik jika data tersedia
+if not df.empty:
+    numeric_columns = df.select_dtypes(include=['object']).columns
+    for col in numeric_columns:
+        try:
+            df[col] = pd.to_numeric(df[col])
+        except:
+            pass
+
+    all_columns = df.columns.tolist()
+    x_axis = st.selectbox("📈 Pilih X-Axis:", all_columns)
+    y_axis = st.selectbox("📉 Pilih Y-Axis:", all_columns)
+
+    if x_axis and y_axis:
+        fig = px.line(df, x=x_axis, y=y_axis, title=f"📈 Grafik {y_axis} vs {x_axis}", template="plotly_dark")
+        st.plotly_chart(fig)
+
+# Footer
+st.markdown("""
+    ---
+    📬 **Kontak:** [GitHub](https://github.com/) | [LinkedIn](https://linkedin.com/)
+""")
