@@ -4,6 +4,7 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 import plotly.express as px
+from streamlit_extras.metric_cards import style_metric_cards
 
 # Load variabel dari .env
 load_dotenv()
@@ -20,7 +21,7 @@ def get_sheets():
         sheets = response.json().get("sheets", [])
         return [sheet["properties"]["title"] for sheet in sheets]
     else:
-        st.error("❌ Gagal mengambil daftar sheet")
+        st.error("Gagal mengambil daftar sheet")
         return []
 
 # Fungsi untuk mengambil data dari satu sheet
@@ -30,45 +31,44 @@ def get_data(sheet_name):
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json().get("values", [])
-        df = pd.DataFrame(data[1:], columns=data[0])  # Gunakan baris pertama sebagai header
+        df = pd.DataFrame(data[1:], columns=data[0])
         return df
     else:
-        st.error(f"❌ Gagal mengambil data dari sheet: {sheet_name}")
+        st.error(f"Gagal mengambil data dari sheet: {sheet_name}")
         return pd.DataFrame()
-
-# Sidebar styling
-st.sidebar.markdown("## 🗂 Pilih Data")
 
 # Ambil semua sheet
 sheets = get_sheets()
 
 # Pilih sheet yang akan ditampilkan
-selected_sheet = st.sidebar.selectbox("📄 Pilih Sheet", sheets)
+selected_sheet = st.sidebar.selectbox("Pilih Sheet", sheets)
 
 # Ambil data dari sheet yang dipilih
 df = get_data(selected_sheet)
 
-# Custom page title and style
-st.markdown("""
-    <style>
-        .main-title {
-            text-align: center;
-            color: #4CAF50;
-            font-size: 2.5rem;
-        }
-    </style>
-""", unsafe_allow_html=True)
+# Tampilkan judul dan deskripsi
+st.title("📊 Dashboard Monitoring Real-Time")
+st.markdown("### Data real-time penggunaan alat laboratorium")
 
-st.markdown("<h1 class='main-title'>📊 Dashboard Data Google Sheets</h1>", unsafe_allow_html=True)
-
-# Tampilkan data
-st.write(f"### Menampilkan data dari sheet: **{selected_sheet}**")
+# Tampilkan metric/gauge untuk data real-time
 if not df.empty:
-    st.dataframe(df.style.set_properties(**{'background-color': '#f4f4f4', 'border-color': '#4CAF50'}))
-else:
-    st.warning("⚠️ Data tidak ditemukan di sheet ini.")
+    latest_data = df.iloc[-1]
+    col1, col2, col3 = st.columns(3)
 
-# Pilih kolom untuk grafik jika data tersedia
+    with col1:
+        st.metric(label="⚡ Tegangan (V)", value=latest_data["voltage"])
+    with col2:
+        st.metric(label="💡 Arus (A)", value=latest_data["current"])
+    with col3:
+        st.metric(label="🔋 Daya Aktif (W)", value=latest_data["activepower"])
+
+    style_metric_cards(border_color="#4CAF50", background_color="#E8F5E9", border_radius_px=10)
+
+# Tampilkan tabel data
+st.markdown("### Tabel Data")
+st.dataframe(df, use_container_width=True)
+
+# Visualisasi grafik
 if not df.empty:
     numeric_columns = df.select_dtypes(include=['object']).columns
     for col in numeric_columns:
@@ -78,15 +78,11 @@ if not df.empty:
             pass
 
     all_columns = df.columns.tolist()
-    x_axis = st.selectbox("📈 Pilih X-Axis:", all_columns)
-    y_axis = st.selectbox("📉 Pilih Y-Axis:", all_columns)
+    x_axis = st.selectbox("Pilih X-Axis:", all_columns)
+    y_axis = st.selectbox("Pilih Y-Axis:", all_columns)
 
     if x_axis and y_axis:
-        fig = px.line(df, x=x_axis, y=y_axis, title=f"📈 Grafik {y_axis} vs {x_axis}", template="plotly_dark")
-        st.plotly_chart(fig)
-
-# Footer
-st.markdown("""
-    ---
-    📬 **Kontak:** [GitHub](https://github.com/) | [LinkedIn](https://linkedin.com/)
-""")
+        fig = px.line(df, x=x_axis, y=y_axis, title=f"Grafik {y_axis} vs {x_axis}", markers=True)
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("Pilih kolom untuk visualisasi.")

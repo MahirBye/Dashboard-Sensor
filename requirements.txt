@@ -3,4 +3,4 @@ plotly
 pandas
 requests
 python-dotenv
-
+streamlit-extras
