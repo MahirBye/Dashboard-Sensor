@@ -39,34 +39,35 @@ def get_data(sheet_name):
 # Ambil semua sheet
 sheets = get_sheets()
 
+# Sidebar dengan style
+st.sidebar.title("📂 Pilihan Sheet")
+st.sidebar.markdown("Pilih sheet untuk menampilkan data dan visualisasi")
+
 # Pilih sheet yang akan ditampilkan
 selected_sheet = st.sidebar.selectbox("Pilih Sheet", sheets)
 
 # Ambil data dari sheet yang dipilih
 df = get_data(selected_sheet)
 
-# Tampilkan data
+# Tampilkan data dengan style yang lebih menarik
 st.title("📊 Dashboard Data Google Sheets")
-st.write(f"Menampilkan data dari sheet: **{selected_sheet}**")
-st.dataframe(df)
+st.markdown(f"### Menampilkan data dari sheet: **{selected_sheet}**")
 
-# Buat Grafik (jika data cukup)
 if not df.empty:
-    numeric_columns = df.select_dtypes(include=['object']).columns
-    for col in numeric_columns:
-        try:
-            df[col] = pd.to_numeric(df[col])
-        except:
-            pass
+    st.dataframe(df.style.set_table_styles(
+        [{'selector': 'thead th', 'props': [('background-color', '#4CAF50'), ('color', 'white')]}]
+    ))
 
-# Pilih kolom untuk grafik
+    # Pilih kolom untuk grafik
     all_columns = df.columns.tolist()
-    x_axis = st.selectbox("Pilih X-Axis:", all_columns)
-    y_axis = st.selectbox("Pilih Y-Axis:", all_columns)
+    x_axis = st.selectbox("🧩 Pilih X-Axis:", all_columns)
+    y_axis = st.selectbox("📈 Pilih Y-Axis:", all_columns)
 
     if x_axis and y_axis:
-        fig = px.line(df, x=x_axis, y=y_axis, title=f"Grafik {y_axis} vs {x_axis}")
+        fig = px.line(df, x=x_axis, y=y_axis, title=f"{y_axis} vs {x_axis}", markers=True)
         st.plotly_chart(fig)
 
-    else:
-        st.warning("Data tidak ditemukan di sheet ini.")
+    st.markdown("---")
+    st.info("🔍 Gunakan sidebar untuk mengganti sheet dan melihat data lain.")
+else:
+    st.warning("⚠️ Data tidak ditemukan di sheet ini.")
