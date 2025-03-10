@@ -56,11 +56,11 @@ if not df.empty:
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.metric(label="⚡ Tegangan (V)", value=latest_data["voltage"])
+        st.metric(label="⚡ Tegangan (V)", value=latest_data["Voltage"])
     with col2:
-        st.metric(label="💡 Arus (A)", value=latest_data["current"])
+        st.metric(label="💡 Arus (A)", value=latest_data["Current"])
     with col3:
-        st.metric(label="🔋 Daya Aktif (W)", value=latest_data["activepower"])
+        st.metric(label="🔋 Daya Aktif (W)", value=latest_data["Activepower"])
 
     style_metric_cards(border_color="#4CAF50", background_color="#E8F5E9", border_radius_px=10)
 
