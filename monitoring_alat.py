@@ -60,7 +60,7 @@ if not df.empty:
     st.metric(label="🔌 Energi Aktif (Wh)", value=latest_data["Energi Aktif (Wh)"])
     st.metric(label="📊 Frekuensi (Hz)", value=latest_data["Frekuensi (Hz)"])
     st.metric(label="💠 Faktor Daya", value=latest_data["Faktor Daya"])
-    st.metric(label="⚙️ Daya Reaktif (VAR)", value=latest_data["Daya Reaktif (VAR)"])
+    st.metric(label="⚙️ Daya Reaktif (VA)", value=latest_data["Daya Reaktif (VA)"])
     st.metric(label="🔷 Daya Semu (VAR)", value=latest_data["Daya Semu (VAR)"])
 
 # Pilih kolom untuk grafik
