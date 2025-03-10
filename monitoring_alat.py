@@ -25,7 +25,6 @@ def get_sheets():
         return []
 
 # Fungsi untuk mengambil data dari satu sheet
-
 def get_data(sheet_name):
     url = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}/values/{sheet_name}?key={API_KEY}"
     response = requests.get(url)
@@ -44,12 +43,14 @@ sheets = get_sheets()
 selected_sheet = st.sidebar.selectbox("Pilih Sheet", sheets)
 
 # Tombol untuk merefresh data
-if st.button("Refresh Data"):
-    df = get_data(selected_sheet)
+if st.button("🔄 Refresh Data"):
+    st.session_state['df'] = get_data(selected_sheet)
 
 # Ambil data dari sheet yang dipilih pertama kali
-else:
-    df = get_data(selected_sheet)
+if 'df' not in st.session_state:
+    st.session_state['df'] = get_data(selected_sheet)
+
+df = st.session_state['df']
 
 # Tampilkan data
 st.title("📊 Dashboard Data Google Sheets")
