@@ -48,7 +48,7 @@ df = get_data(selected_sheet)
 # Tampilkan data
 st.title("📊 Dashboard Data Google Sheets")
 st.write(f"Menampilkan data dari sheet: **{selected_sheet}**")
-st.dataframe(df[1:])
+st.dataframe(df)
 
 # Buat Grafik (jika data cukup)
 if not df.empty:
