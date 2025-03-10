@@ -66,13 +66,13 @@ while True:
             st.metric(label="🔌 Energi Aktif (Wh)", value=latest_data["Energi Aktif (Wh)"])
             st.metric(label="📊 Frekuensi (Hz)", value=latest_data["Frekuensi (Hz)"])
             st.metric(label="💠 Faktor Daya", value=latest_data["Faktor Daya"])
-            st.metric(label="⚙️ Daya Reaktif (VA)", value=latest_data["Daya Reaktif (VA)"])
+            st.metric(label="⚙️ Daya Reaktif (VAR)", value=latest_data["Daya Reaktif (VAR)"])
             st.metric(label="🔷 Daya Semu (VAR)", value=latest_data["Daya Semu (VAR)"])
 
             # Pilih kolom untuk grafik
             all_columns = df.columns.tolist()
-            x_axis = st.selectbox("Pilih X-Axis:", all_columns)
-            y_axis = st.selectbox("Pilih Y-Axis:", all_columns)
+            x_axis = st.selectbox("Pilih X-Axis:", all_columns, key='x_axis')
+            y_axis = st.selectbox("Pilih Y-Axis:", all_columns, key='y_axis')
 
             if x_axis and y_axis:
                 fig = px.line(df, x=x_axis, y=y_axis, title=f"Grafik {y_axis} vs {x_axis}")
