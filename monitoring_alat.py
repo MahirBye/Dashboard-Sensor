@@ -30,7 +30,7 @@ def get_data(sheet_name):
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json().get("values", [])
-        df = pd.DataFrame(data[2:], columns=data[1])  # Gunakan baris pertama sebagai header
+        df = pd.DataFrame(data[1:], columns=data[0])  # Gunakan baris pertama sebagai header
         return df
     else:
         st.error(f"Gagal mengambil data dari sheet: {sheet_name}")
@@ -48,7 +48,7 @@ df = get_data(selected_sheet)
 # Tampilkan data
 st.title("📊 Dashboard Data Google Sheets")
 st.write(f"Menampilkan data dari sheet: **{selected_sheet}**")
-st.dataframe(df)
+st.dataframe(df[1:])
 
 # Buat Grafik (jika data cukup)
 if not df.empty:
