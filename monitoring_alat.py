@@ -54,6 +54,7 @@ st.markdown("### Data real-time penggunaan alat laboratorium")
 if not df.empty:
     latest_data = df.iloc[-1]
     col1, col2, col3 = st.columns(3)
+    st.write(latest_data)
 
     with col1:
         st.metric(label="⚡ Tegangan (V)", value=latest_data["Voltage"])
