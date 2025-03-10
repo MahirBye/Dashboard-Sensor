@@ -44,7 +44,7 @@ sheets = get_sheets()
 selected_sheet = st.sidebar.selectbox("Pilih Sheet", sheets)
 
 # Tombol untuk merefresh data
-if st.button("🔄 Refresh Data"):
+if st.button("Refresh Data"):
     df = get_data(selected_sheet)
 
 # Ambil data dari sheet yang dipilih pertama kali
