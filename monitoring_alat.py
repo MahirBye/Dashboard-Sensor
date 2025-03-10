@@ -4,7 +4,7 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 import plotly.express as px
-import time
+
 
 # Load variabel dari .env
 load_dotenv()
@@ -25,7 +25,7 @@ def get_sheets():
         return []
 
 # Fungsi untuk mengambil data dari satu sheet
-@st.cache_data
+st.button('click')
 def get_data(sheet_name):
     url = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}/values/{sheet_name}?key={API_KEY}"
     response = requests.get(url)
@@ -62,6 +62,3 @@ if not df.empty:
         st.warning("Data tidak cukup untuk membuat grafik.")
 else:
     st.error("Data tidak tersedia.")
-
-
-time.sleep(5)
