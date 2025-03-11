@@ -61,9 +61,9 @@ with placeholder.container():
 
         selected_columns = st.multiselect("📊 Pilih Kolom untuk Time Series:", numeric_columns, default=numeric_columns[:2])
 
-        if len(selected_columns) >= 2:
-            st.markdown(f"### ⏳ Time Series {selected_columns[1]} vs {selected_columns[0]}")
-            fig = px.line(df, x=selected_columns[0], y=selected_columns[1:])
+        if selected_columns:
+            st.markdown(f"### ⏳ Time Series untuk Kolom yang Dipilih")
+            fig = px.line(df, x=df.index, y=selected_columns)
             st.plotly_chart(fig, use_container_width=True)
 
         st.markdown("### 📝 Data Lengkap")
