@@ -18,7 +18,9 @@ def get_sheets():
     response = requests.get(url)
     if response.status_code == 200:
         sheets = response.json().get("sheets", [])
+        st.write("Sheets retrieved:", sheets)  # Debugging
         return [sheet["properties"]["title"] for sheet in sheets]
+    st.error(f"Failed to retrieve sheets. Status code: {response.status_code}")  # Debugging
     return []
 
 # Fungsi untuk mengambil data dari Google Sheets
@@ -37,7 +39,10 @@ st.title("📊 Dashboard Monitoring Data")
 
 # Pilih sheet
 sheets = get_sheets()
-selected_sheet = st.selectbox("Pilih Sheet:", sheets)
+if sheets:
+    selected_sheet = st.selectbox("Pilih Sheet:", sheets)
+else:
+    st.error("Tidak ada sheet yang tersedia.")
 
 # Ambil data jika sheet dipilih
 if selected_sheet:
@@ -98,8 +103,8 @@ if st.button("Mulai Polling Data Realtime"):
     refresh_interval = st.empty()
     refresh_interval.write("Data akan diperbarui setiap 10 detik...")
     
-    # Gunakan st.cache untuk menyimpan data terakhir
-    @st.cache(ttl=10)  # Cache data selama 10 detik
+    # Gunakan st.cache_data untuk menyimpan data terakhir
+    @st.cache_data(ttl=10)  # Cache data selama 10 detik
     def get_latest_data():
         return fetch_data(selected_sheet)
     
