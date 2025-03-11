@@ -83,12 +83,12 @@ for seconds in range(200):
             with fig_col1:
                 st.markdown("### 🔥 Heatmap Tegangan vs Arus")
                 fig = px.density_heatmap(data_frame=df, y="Tegangan (V)", x="Arus (A)")
-                st.write(fig)
+                st.plotly_chart(fig, use_container_width=True, key=f"heatmap_{seconds}")
 
             with fig_col2:
                 st.markdown("### 📊 Histogram Daya Aktif")
                 fig2 = px.histogram(data_frame=df, x="Daya Aktif (W)")
-                st.write(fig2)
+                st.plotly_chart(fig2, use_container_width=True, key=f"histogram_{seconds}")
 
             st.markdown("### 📝 Data Lengkap")
             st.dataframe(df)
