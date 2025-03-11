@@ -1,53 +1,55 @@
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-import requests
-from dotenv import load_dotenv
 import os
+import requests
+import pandas as pd
+import streamlit as st
+from dotenv import load_dotenv
 
 # Load API Key dari .env
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 
-# Fungsi untuk mengambil data dari Google Sheets
+def fetch_sheets():
+    url = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}?key={API_KEY}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        sheets = response.json().get("sheets", [])
+        return [sheet["properties"]["title"] for sheet in sheets]
+    return []
+
 def fetch_data(sheet_name):
     url = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}/values/{sheet_name}?key={API_KEY}"
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json().get("values", [])
-        df = pd.DataFrame(data[1:], columns=data[0])  # Gunakan baris pertama sebagai header
+        df = pd.DataFrame(data[1:], columns=data[0])
         return df
     return pd.DataFrame()
 
-# Ambil data dari sheet utama
-df = fetch_data("11-03-2025")  # Ganti dengan nama sheet yang sesuai
+# Streamlit UI
+st.title("Dashboard Monitoring Google Sheets")
 
-# Pastikan ada data sebelum melanjutkan
-if not df.empty:
-    st.title("Dashboard Monitoring")
-    
-    # Kolom pencarian alat
-    alat_list = df["Alat"].unique().tolist()
+# Pilih Sheet
+sheets = fetch_sheets()
+selected_sheet = st.selectbox("Pilih Sheet:", sheets)
+
+data = fetch_data(selected_sheet)
+if not data.empty:
+    # Pilih alat
+    alat_list = data['Alat'].unique().tolist()
     selected_alat = st.selectbox("Pilih Alat:", alat_list)
     
-    # Filter data berdasarkan alat yang dipilih
-    filtered_df = df[df["Alat"] == selected_alat]
-    st.write("Data untuk alat yang dipilih:")
-    st.dataframe(filtered_df)
+    # Filter data berdasarkan alat
+    filtered_data = data[data['Alat'] == selected_alat]
+    st.write("### Data Terpilih")
+    st.dataframe(filtered_data)
     
-    # Pastikan ada data yang sesuai sebelum menampilkan grafik
-    if not filtered_df.empty:
-        # Ubah kolom waktu menjadi datetime jika ada
-        if "Waktu" in filtered_df.columns:
-            filtered_df["Waktu"] = pd.to_datetime(filtered_df["Waktu"])
-            
-            # Grafik Time Series
-            fig = px.line(filtered_df, x="Waktu", y="Hasil", title=f"Time Series Data {selected_alat}")
-            st.plotly_chart(fig)
+    # Konversi kolom waktu ke datetime
+    if 'Waktu' in filtered_data.columns:
+        filtered_data['Waktu'] = pd.to_datetime(filtered_data['Waktu'])
         
-        # Grafik tambahan (misalnya distribusi nilai)
-        fig2 = px.histogram(filtered_df, x="Hasil", title="Distribusi Hasil")
-        st.plotly_chart(fig2)
-else:
-    st.write("Tidak ada data yang tersedia.")
+        # Time Series
+        st.line_chart(filtered_data.set_index('Waktu')['Nilai'])
+        
+        # Grafik lainnya
+        st.bar_chart(filtered_data.set_index('Waktu')['Nilai'])
