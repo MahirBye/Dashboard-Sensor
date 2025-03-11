@@ -22,7 +22,7 @@ SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 SHEET_METADATA_URL = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}?key={API_KEY}"
 
 # Fungsi untuk mengambil data dari Google Sheets
-@st.experimental_memo
+@st.cache_data
 def get_data(sheet_name):
     url = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}/values/{sheet_name}?key={API_KEY}"
     response = requests.get(url)
