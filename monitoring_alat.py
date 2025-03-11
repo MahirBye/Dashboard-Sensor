@@ -29,6 +29,7 @@ def get_data(sheet_name):
     if response.status_code == 200:
         data = response.json().get("values", [])
         df = pd.DataFrame(data[1:], columns=data[0])  # Gunakan baris pertama sebagai header
+        df = df.reset_index(drop=True)
         return df
     else:
         st.error(f"Gagal mengambil data dari sheet: {sheet_name}")
@@ -46,6 +47,9 @@ df = get_data(selected_sheet)
 
 # Dashboard title
 st.title("⚡ Real-Time Monitoring Data Pemakaian Alat Laboratorium")
+
+# Pilihan heatmap
+heatmap_option = st.selectbox("Pilih Heatmap", ["Tegangan vs Arus", "Tegangan vs Daya", "Arus vs Daya"])
 
 # Simulasi data real-time
 for seconds in range(200):
@@ -79,16 +83,22 @@ for seconds in range(200):
                 delta=round(avg_power) - 60,
             )
 
-            fig_col1, fig_col2 = st.columns(2)
-            with fig_col1:
+            # Tampilkan heatmap berdasarkan pilihan
+            if heatmap_option == "Tegangan vs Arus":
                 st.markdown("### 🔥 Heatmap Tegangan vs Arus")
                 fig = px.density_heatmap(data_frame=df, y="Tegangan (V)", x="Arus (A)")
-                st.plotly_chart(fig, use_container_width=True, key=f"heatmap_{seconds}")
+            elif heatmap_option == "Tegangan vs Daya":
+                st.markdown("### 🔥 Heatmap Tegangan vs Daya")
+                fig = px.density_heatmap(data_frame=df, y="Tegangan (V)", x="Daya Aktif (W)")
+            elif heatmap_option == "Arus vs Daya":
+                st.markdown("### 🔥 Heatmap Arus vs Daya")
+                fig = px.density_heatmap(data_frame=df, y="Arus (A)", x="Daya Aktif (W)")
 
-            with fig_col2:
-                st.markdown("### 📊 Histogram Daya Aktif")
-                fig2 = px.histogram(data_frame=df, x="Daya Aktif (W)")
-                st.plotly_chart(fig2, use_container_width=True, key=f"histogram_{seconds}")
+            st.plotly_chart(fig, use_container_width=True, key=f"heatmap_{seconds}")
+
+            st.markdown("### 📊 Histogram Daya Aktif")
+            fig2 = px.histogram(data_frame=df, x="Daya Aktif (W)")
+            st.plotly_chart(fig2, use_container_width=True, key=f"histogram_{seconds}")
 
             st.markdown("### 📝 Data Lengkap")
             st.dataframe(df)
