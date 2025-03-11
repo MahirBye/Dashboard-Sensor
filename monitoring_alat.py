@@ -47,48 +47,48 @@ df = get_data(selected_sheet)
 # Dashboard title
 st.title("⚡ Real-Time Monitoring Data Pemakaian Alat Laboratorium")
 
-# Pilihan visualisasi
-visualization_option = st.selectbox("Pilih Visualisasi", ["Heatmap", "Histogram"])
-
-# Simulasi data real-time
+# Pilihan kolom untuk visualisasi
 if not df.empty:
-    df["Tegangan (V)"] = pd.to_numeric(df["Tegangan (V)"], errors='coerce')
-    df["Arus (A)"] = pd.to_numeric(df["Arus (A)"], errors='coerce')
-    df["Daya Aktif (W)"] = pd.to_numeric(df["Daya Aktif (W)"], errors='coerce')
+    numeric_columns = df.select_dtypes(include=['object']).columns
+    for col in numeric_columns:
+        try:
+            df[col] = pd.to_numeric(df[col])
+        except:
+            pass
+
+    all_columns = df.columns.tolist()
+    x_axis = st.selectbox("📈 Pilih X-Axis:", all_columns)
+    y_axis = st.selectbox("📉 Pilih Y-Axis:", all_columns)
+
+    # Pilihan visualisasi
+    visualization_option = st.selectbox("Pilih Visualisasi", ["Heatmap", "Histogram"])
 
     for _ in range(200):
-        avg_voltage = np.mean(df["Tegangan (V)"])
-        avg_current = np.mean(df["Arus (A)"])
-        avg_power = np.mean(df["Daya Aktif (W)"])
+        avg_x = np.mean(df[x_axis])
+        avg_y = np.mean(df[y_axis])
 
         with st.empty().container():
-            kpi1, kpi2, kpi3 = st.columns(3)
+            kpi1, kpi2 = st.columns(2)
 
             kpi1.metric(
-                label="⚡ Rata-rata Tegangan (V)",
-                value=round(avg_voltage, 2),
-                delta=round(avg_voltage) - 220,
+                label=f"📊 Rata-rata {x_axis}",
+                value=round(avg_x, 2),
+                delta=round(avg_x) - round(avg_x * 0.1),
             )
 
             kpi2.metric(
-                label="💡 Rata-rata Arus (A)",
-                value=round(avg_current, 2),
-                delta=round(avg_current) - 2,
-            )
-
-            kpi3.metric(
-                label="🔋 Rata-rata Daya Aktif (W)",
-                value=round(avg_power, 2),
-                delta=round(avg_power) - 60,
+                label=f"📊 Rata-rata {y_axis}",
+                value=round(avg_y, 2),
+                delta=round(avg_y) - round(avg_y * 0.1),
             )
 
             if visualization_option == "Heatmap":
-                st.markdown("### 🔥 Heatmap Tegangan vs Arus")
-                fig = px.density_heatmap(data_frame=df, y="Tegangan (V)", x="Arus (A)")
+                st.markdown(f"### 🔥 Heatmap {y_axis} vs {x_axis}")
+                fig = px.density_heatmap(data_frame=df, x=x_axis, y=y_axis)
                 st.plotly_chart(fig, use_container_width=True)
             elif visualization_option == "Histogram":
-                st.markdown("### 📊 Histogram Daya Aktif")
-                fig2 = px.histogram(data_frame=df, x="Daya Aktif (W)")
+                st.markdown(f"### 📊 Histogram {y_axis}")
+                fig2 = px.histogram(data_frame=df, x=y_axis)
                 st.plotly_chart(fig2, use_container_width=True)
 
             st.markdown("### 📝 Data Lengkap")
