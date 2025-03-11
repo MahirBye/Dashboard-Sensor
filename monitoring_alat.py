@@ -1,5 +1,3 @@
-import time
-import numpy as np
 import os
 import streamlit as st
 import pandas as pd
@@ -41,57 +39,32 @@ sheets = [sheet["properties"]["title"] for sheet in response.json().get("sheets"
 # Pilih sheet yang akan ditampilkan
 selected_sheet = st.sidebar.selectbox("Pilih Sheet", sheets)
 
-# Ambil data dari sheet yang dipilih
+# Placeholder untuk data dan visualisasi
+placeholder = st.empty()
+
 df = get_data(selected_sheet)
 
-# Dashboard title
-st.title("⚡ Real-Time Monitoring Data Pemakaian Alat Laboratorium")
+with placeholder.container():
+    # Dashboard title
+    st.title("⚡ Real-Time Monitoring Data Pemakaian Alat Laboratorium")
 
-# Waktu real-time
-st.markdown(f"🕒 Waktu Saat Ini: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    # Pilihan kolom untuk visualisasi
+    if not df.empty:
+        # Konversi kolom numerik
+        for col in df.columns:
+            try:
+                df[col] = pd.to_numeric(df[col])
+            except ValueError:
+                pass
 
-# Pilihan kolom untuk visualisasi
-if not df.empty:
-    # Konversi kolom numerik
-    for col in df.columns:
-        try:
-            df[col] = pd.to_numeric(df[col])
-        except ValueError:
-            pass
+        numeric_columns = df.select_dtypes(include=["number"]).columns.tolist()
 
-    numeric_columns = df.select_dtypes(include=[np.number]).columns.tolist()
+        selected_columns = st.multiselect("📊 Pilih Kolom untuk Time Series:", numeric_columns, default=numeric_columns[:2])
 
-    x_axis = st.selectbox("📈 Pilih X-Axis:", numeric_columns)
-    y_axis = st.selectbox("📉 Pilih Y-Axis:", numeric_columns)
+        if len(selected_columns) >= 2:
+            st.markdown(f"### ⏳ Time Series {selected_columns[1]} vs {selected_columns[0]}")
+            fig = px.line(df, x=selected_columns[0], y=selected_columns[1:])
+            st.plotly_chart(fig, use_container_width=True)
 
-    # Pilihan visualisasi
-    visualization_option = st.selectbox("Pilih Visualisasi", ["Heatmap", "Histogram"])
-
-    avg_x = np.mean(df[x_axis])
-    avg_y = np.mean(df[y_axis])
-
-    kpi1, kpi2 = st.columns(2)
-
-    kpi1.metric(
-        label=f"📊 Rata-rata {x_axis}",
-        value=round(avg_x, 2),
-        delta=round(avg_x) - round(avg_x * 0.1),
-    )
-
-    kpi2.metric(
-        label=f"📊 Rata-rata {y_axis}",
-        value=round(avg_y, 2),
-        delta=round(avg_y) - round(avg_y * 0.1),
-    )
-
-    if visualization_option == "Heatmap":
-        st.markdown(f"### 🔥 Heatmap {y_axis} vs {x_axis}")
-        fig = px.density_heatmap(data_frame=df, x=x_axis, y=y_axis)
-        st.plotly_chart(fig, use_container_width=True, key="heatmap")
-    elif visualization_option == "Histogram":
-        st.markdown(f"### 📊 Histogram {y_axis}")
-        fig2 = px.histogram(data_frame=df, x=y_axis)
-        st.plotly_chart(fig2, use_container_width=True, key="histogram")
-
-    st.markdown("### 📝 Data Lengkap")
-    st.dataframe(df)
+        st.markdown("### 📝 Data Lengkap")
+        st.dataframe(df)
