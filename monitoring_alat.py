@@ -27,6 +27,7 @@ def get_data(sheet_name):
     if response.status_code == 200:
         data = response.json().get("values", [])
         df = pd.DataFrame(data[1:], columns=data[0])  # Gunakan baris pertama sebagai header
+        df = df.reset_index(drop=True)
         return df
     else:
         st.error(f"Gagal mengambil data dari sheet: {sheet_name}")
@@ -67,4 +68,4 @@ with placeholder.container():
             st.plotly_chart(fig, use_container_width=True)
 
         st.markdown("### 📝 Data Lengkap")
-        st.dataframe(df)
+        st.data_editor(df, hide_index=True)
