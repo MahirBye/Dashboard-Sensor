@@ -49,16 +49,17 @@ st.title("⚡ Real-Time Monitoring Data Pemakaian Alat Laboratorium")
 
 # Pilihan kolom untuk visualisasi
 if not df.empty:
-    numeric_columns = df.select_dtypes(include=['object']).columns
-    for col in numeric_columns:
+    # Konversi kolom numerik
+    for col in df.columns:
         try:
             df[col] = pd.to_numeric(df[col])
-        except:
+        except ValueError:
             pass
 
-    all_columns = df.columns.tolist()
-    x_axis = st.selectbox("📈 Pilih X-Axis:", all_columns)
-    y_axis = st.selectbox("📉 Pilih Y-Axis:", all_columns)
+    numeric_columns = df.select_dtypes(include=[np.number]).columns.tolist()
+
+    x_axis = st.selectbox("📈 Pilih X-Axis:", numeric_columns)
+    y_axis = st.selectbox("📉 Pilih Y-Axis:", numeric_columns)
 
     # Pilihan visualisasi
     visualization_option = st.selectbox("Pilih Visualisasi", ["Heatmap", "Histogram"])
