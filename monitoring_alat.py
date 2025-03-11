@@ -21,7 +21,7 @@ def fetch_data(sheet_name):
     return pd.DataFrame()
 
 # Ambil data dari sheet utama
-df = fetch_data("Sheet1")  # Ganti dengan nama sheet yang sesuai
+df = fetch_data("11-03-2025")  # Ganti dengan nama sheet yang sesuai
 
 # Pastikan ada data sebelum melanjutkan
 if not df.empty:
