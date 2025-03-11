@@ -64,7 +64,7 @@ if not df.empty:
     # Pilihan visualisasi
     visualization_option = st.selectbox("Pilih Visualisasi", ["Heatmap", "Histogram"])
 
-    for _ in range(200):
+    for i in range(200):
         avg_x = np.mean(df[x_axis])
         avg_y = np.mean(df[y_axis])
 
@@ -86,11 +86,11 @@ if not df.empty:
             if visualization_option == "Heatmap":
                 st.markdown(f"### 🔥 Heatmap {y_axis} vs {x_axis}")
                 fig = px.density_heatmap(data_frame=df, x=x_axis, y=y_axis)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True, key=f"heatmap_{i}")
             elif visualization_option == "Histogram":
                 st.markdown(f"### 📊 Histogram {y_axis}")
                 fig2 = px.histogram(data_frame=df, x=y_axis)
-                st.plotly_chart(fig2, use_container_width=True)
+                st.plotly_chart(fig2, use_container_width=True, key=f"histogram_{i}")
 
             st.markdown("### 📝 Data Lengkap")
             st.dataframe(df)
