@@ -47,6 +47,9 @@ df = get_data(selected_sheet)
 # Dashboard title
 st.title("⚡ Real-Time Monitoring Data Pemakaian Alat Laboratorium")
 
+# Waktu real-time
+st.markdown(f"🕒 Waktu Saat Ini: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+
 # Pilihan kolom untuk visualisasi
 if not df.empty:
     # Konversi kolom numerik
@@ -64,35 +67,31 @@ if not df.empty:
     # Pilihan visualisasi
     visualization_option = st.selectbox("Pilih Visualisasi", ["Heatmap", "Histogram"])
 
-    for i in range(200):
-        avg_x = np.mean(df[x_axis])
-        avg_y = np.mean(df[y_axis])
+    avg_x = np.mean(df[x_axis])
+    avg_y = np.mean(df[y_axis])
 
-        with st.empty().container():
-            kpi1, kpi2 = st.columns(2)
+    kpi1, kpi2 = st.columns(2)
 
-            kpi1.metric(
-                label=f"📊 Rata-rata {x_axis}",
-                value=round(avg_x, 2),
-                delta=round(avg_x) - round(avg_x * 0.1),
-            )
+    kpi1.metric(
+        label=f"📊 Rata-rata {x_axis}",
+        value=round(avg_x, 2),
+        delta=round(avg_x) - round(avg_x * 0.1),
+    )
 
-            kpi2.metric(
-                label=f"📊 Rata-rata {y_axis}",
-                value=round(avg_y, 2),
-                delta=round(avg_y) - round(avg_y * 0.1),
-            )
+    kpi2.metric(
+        label=f"📊 Rata-rata {y_axis}",
+        value=round(avg_y, 2),
+        delta=round(avg_y) - round(avg_y * 0.1),
+    )
 
-            if visualization_option == "Heatmap":
-                st.markdown(f"### 🔥 Heatmap {y_axis} vs {x_axis}")
-                fig = px.density_heatmap(data_frame=df, x=x_axis, y=y_axis)
-                st.plotly_chart(fig, use_container_width=True, key=f"heatmap_{i}")
-            elif visualization_option == "Histogram":
-                st.markdown(f"### 📊 Histogram {y_axis}")
-                fig2 = px.histogram(data_frame=df, x=y_axis)
-                st.plotly_chart(fig2, use_container_width=True, key=f"histogram_{i}")
+    if visualization_option == "Heatmap":
+        st.markdown(f"### 🔥 Heatmap {y_axis} vs {x_axis}")
+        fig = px.density_heatmap(data_frame=df, x=x_axis, y=y_axis)
+        st.plotly_chart(fig, use_container_width=True, key="heatmap")
+    elif visualization_option == "Histogram":
+        st.markdown(f"### 📊 Histogram {y_axis}")
+        fig2 = px.histogram(data_frame=df, x=y_axis)
+        st.plotly_chart(fig2, use_container_width=True, key="histogram")
 
-            st.markdown("### 📝 Data Lengkap")
-            st.dataframe(df)
-
-        time.sleep(1)
+    st.markdown("### 📝 Data Lengkap")
+    st.dataframe(df)
