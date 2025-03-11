@@ -1,71 +1,61 @@
 import os
-import streamlit as st
-import pandas as pd
 import requests
-from dotenv import load_dotenv
+import pandas as pd
+import streamlit as st
 import plotly.express as px
+from dotenv import load_dotenv
 
-st.set_page_config(
-    page_title="Real-Time Monitoring Dashboard",
-    page_icon="⚡",
-    layout="wide",
-)
-
-# Load variabel dari .env
+# Load API Key dari .env
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 
-# URL untuk mendapatkan daftar sheet
-SHEET_METADATA_URL = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}?key={API_KEY}"
-
 # Fungsi untuk mengambil data dari Google Sheets
-@st.cache_data
-def get_data(sheet_name):
+def fetch_data(sheet_name):
     url = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}/values/{sheet_name}?key={API_KEY}"
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json().get("values", [])
-        df = pd.DataFrame(data[1:], columns=data[0])  # Gunakan baris pertama sebagai header
-        df = df.reset_index(drop=True)
-        return df
-    else:
-        st.error(f"Gagal mengambil data dari sheet: {sheet_name}")
-        return pd.DataFrame()
+        if data:
+            df = pd.DataFrame(data[1:], columns=data[0])
+            return df
+    return pd.DataFrame()
 
-# Ambil semua sheet
-response = requests.get(SHEET_METADATA_URL)
-sheets = [sheet["properties"]["title"] for sheet in response.json().get("sheets", [])]
+# UI dengan Streamlit
+st.title("Dashboard Data Google Sheets")
 
-# Pilih sheet yang akan ditampilkan
-selected_sheet = st.sidebar.selectbox("Pilih Sheet", sheets)
+# Pilih sheet
+sheet_name = st.text_input("Masukkan nama sheet:", "Sheet1")
 
-# Placeholder untuk data dan visualisasi
-placeholder = st.empty()
-
-df = get_data(selected_sheet)
-
-with placeholder.container():
-    # Dashboard title
-    st.title("⚡ Real-Time Monitoring Data Pemakaian Alat Laboratorium")
-
-    # Pilihan kolom untuk visualisasi
+# Ambil data
+if sheet_name:
+    df = fetch_data(sheet_name)
     if not df.empty:
-        # Konversi kolom numerik
-        for col in df.columns:
-            try:
-                df[col] = pd.to_numeric(df[col])
-            except ValueError:
-                pass
+        st.write("### Data")
+        st.write(df)
 
-        numeric_columns = df.select_dtypes(include=["number"]).columns.tolist()
+        # Tambahkan pencarian
+        search_query = st.text_input("Cari data:")
+        if search_query:
+            filtered_df = df[df.apply(lambda row: row.astype(str).str.contains(search_query, case=False).any(), axis=1)]
+            st.write("### Hasil Pencarian")
+            st.write(filtered_df)
 
-        selected_columns = st.multiselect("📊 Pilih Kolom untuk Time Series:", numeric_columns, default=numeric_columns[:2])
+        # Konversi kolom pertama menjadi datetime jika memungkinkan
+        try:
+            df.iloc[:, 0] = pd.to_datetime(df.iloc[:, 0])
+            df = df.sort_values(by=df.columns[0])
+            st.write("### Time Series")
+            fig = px.line(df, x=df.columns[0], y=df.columns[1:], title="Time Series Data")
+            st.plotly_chart(fig)
+        except Exception as e:
+            st.warning("Tidak bisa menampilkan grafik time series. Pastikan kolom pertama adalah tanggal.")
 
-        if selected_columns:
-            st.markdown(f"### ⏳ Time Series untuk Kolom yang Dipilih")
-            fig = px.line(df, x=df.index, y=selected_columns)
-            st.plotly_chart(fig, use_container_width=True)
-
-        st.markdown("### 📝 Data Lengkap")
-        st.data_editor(df, hide_index=True)
+        # Grafik tambahan (misalnya bar chart)
+        numeric_columns = df.select_dtypes(include=['number']).columns
+        if not numeric_columns.empty:
+            st.write("### Grafik Data")
+            fig_bar = px.bar(df, x=df.columns[0], y=numeric_columns, title="Bar Chart Data")
+            st.plotly_chart(fig_bar)
+    else:
+        st.warning("Data tidak ditemukan. Periksa nama sheet.")
