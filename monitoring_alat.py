@@ -1,3 +1,5 @@
+import time
+import numpy as np
 import os
 import streamlit as st
 import pandas as pd
@@ -5,6 +7,11 @@ import requests
 from dotenv import load_dotenv
 import plotly.express as px
 
+st.set_page_config(
+    page_title="Real-Time Monitoring Dashboard",
+    page_icon="⚡",
+    layout="wide",
+)
 
 # Load variabel dari .env
 load_dotenv()
@@ -14,17 +21,8 @@ SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 # URL untuk mendapatkan daftar sheet
 SHEET_METADATA_URL = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}?key={API_KEY}"
 
-# Fungsi untuk mendapatkan daftar sheet
-def get_sheets():
-    response = requests.get(SHEET_METADATA_URL)
-    if response.status_code == 200:
-        sheets = response.json().get("sheets", [])
-        return [sheet["properties"]["title"] for sheet in sheets]
-    else:
-        st.error("Gagal mengambil daftar sheet")
-        return []
-
-# Fungsi untuk mengambil data dari satu sheet
+# Fungsi untuk mengambil data dari Google Sheets
+@st.experimental_memo
 def get_data(sheet_name):
     url = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}/values/{sheet_name}?key={API_KEY}"
     response = requests.get(url)
@@ -37,39 +35,61 @@ def get_data(sheet_name):
         return pd.DataFrame()
 
 # Ambil semua sheet
-sheets = get_sheets()
+response = requests.get(SHEET_METADATA_URL)
+sheets = [sheet["properties"]["title"] for sheet in response.json().get("sheets", [])]
 
 # Pilih sheet yang akan ditampilkan
 selected_sheet = st.sidebar.selectbox("Pilih Sheet", sheets)
 
-# Tombol untuk merefresh data
-if st.button("🔄 Refresh Data"):
-    st.session_state['df'] = get_data(selected_sheet)
+# Ambil data dari sheet yang dipilih
+df = get_data(selected_sheet)
 
-# Ambil data dari sheet yang dipilih pertama kali
-if 'df' not in st.session_state:
-    st.session_state['df'] = get_data(selected_sheet)
+# Dashboard title
+st.title("⚡ Real-Time Monitoring Data Pemakaian Alat Laboratorium")
 
-df = st.session_state['df']
+# Simulasi data real-time
+for seconds in range(200):
+    if not df.empty:
+        df["Tegangan (V)"] = pd.to_numeric(df["Tegangan (V)"], errors='coerce')
+        df["Arus (A)"] = pd.to_numeric(df["Arus (A)"], errors='coerce')
+        df["Daya Aktif (W)"] = pd.to_numeric(df["Daya Aktif (W)"], errors='coerce')
 
-# Tampilkan data
-st.title("📊 Dashboard Data Google Sheets")
-st.write(f"Menampilkan data dari sheet: **{selected_sheet}**")
-st.dataframe(df[1:])
+        avg_voltage = np.mean(df["Tegangan (V)"])
+        avg_current = np.mean(df["Arus (A)"])
+        avg_power = np.mean(df["Daya Aktif (W)"])
 
-# Buat Grafik (jika data cukup)
-if not df.empty:
-    numeric_columns = df.select_dtypes(include=['object']).columns
-    for col in numeric_columns:
-        try:
-            df[col] = pd.to_numeric(df[col])
-        except:
-            pass
+        with st.empty().container():
+            kpi1, kpi2, kpi3 = st.columns(3)
 
-    all_columns = df.columns.tolist()
-    x_axis = st.selectbox("📈 Pilih X-Axis:", all_columns)
-    y_axis = st.selectbox("📉 Pilih Y-Axis:", all_columns)
+            kpi1.metric(
+                label="⚡ Rata-rata Tegangan (V)",
+                value=round(avg_voltage, 2),
+                delta=round(avg_voltage) - 220,
+            )
 
-    if x_axis and y_axis:
-        fig = px.line(df, x=x_axis, y=y_axis, title=f"📈 Grafik {y_axis} vs {x_axis}", template="plotly_dark")
-        st.plotly_chart(fig)
+            kpi2.metric(
+                label="💡 Rata-rata Arus (A)",
+                value=round(avg_current, 2),
+                delta=round(avg_current) - 2,
+            )
+
+            kpi3.metric(
+                label="🔋 Rata-rata Daya Aktif (W)",
+                value=round(avg_power, 2),
+                delta=round(avg_power) - 60,
+            )
+
+            fig_col1, fig_col2 = st.columns(2)
+            with fig_col1:
+                st.markdown("### 🔥 Heatmap Tegangan vs Arus")
+                fig = px.density_heatmap(data_frame=df, y="Tegangan (V)", x="Arus (A)")
+                st.write(fig)
+
+            with fig_col2:
+                st.markdown("### 📊 Histogram Daya Aktif")
+                fig2 = px.histogram(data_frame=df, x="Daya Aktif (W)")
+                st.write(fig2)
+
+            st.markdown("### 📝 Data Lengkap")
+            st.dataframe(df)
+            time.sleep(1)
