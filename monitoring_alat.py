@@ -34,9 +34,11 @@ def get_data(sheet_name):
         st.error(f"Gagal mengambil data dari sheet: {sheet_name}")
         return pd.DataFrame()
 
+
 # Ambil semua sheet
 response = requests.get(SHEET_METADATA_URL)
 sheets = [sheet["properties"]["title"] for sheet in response.json().get("sheets", [])]
+print(response.json())
 
 # Pilih sheet yang akan ditampilkan
 selected_sheet = st.sidebar.selectbox("Pilih Sheet", sheets)
