@@ -44,7 +44,7 @@ if response.status_code == 200:
 else:
     st.error("Gagal mengambil daftar sheet dari Google Sheets.")
 
-
+print(sheets)
 # Pilih sheet yang akan ditampilkan
 selected_sheet = st.sidebar.selectbox("Pilih Sheet", sheets)
 
