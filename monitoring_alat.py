@@ -1,145 +1,103 @@
+import os
 import streamlit as st
 import pandas as pd
 import requests
 import seaborn as sns
 import matplotlib.pyplot as plt
+import plotly.express as px
 from dotenv import load_dotenv
-import os
-import time
 
-# Load API Key dari .env
+st.set_page_config(
+    page_title="Real-Time Monitoring Dashboard",
+    page_icon="⚡",
+    layout="wide",
+)
+
+# Load variabel dari .env
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 
-# Fungsi untuk mengambil daftar sheet
-def get_sheets():
-    url = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}?key={API_KEY}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        sheets = response.json().get("sheets", [])
-        st.write("Sheets retrieved:", sheets)  # Debugging
-        return [sheet["properties"]["title"] for sheet in sheets]
-    st.error(f"Failed to retrieve sheets. Status code: {response.status_code}")  # Debugging
-    return []
+# URL untuk mendapatkan daftar sheet
+SHEET_METADATA_URL = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}?key={API_KEY}"
 
 # Fungsi untuk mengambil data dari Google Sheets
-def fetch_data(sheet_name):
+@st.cache_data
+def get_data(sheet_name):
     url = f"https://sheets.googleapis.com/v4/spreadsheets/{SPREADSHEET_ID}/values/{sheet_name}?key={API_KEY}"
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json().get("values", [])
-        if data:
-            df = pd.DataFrame(data[1:], columns=data[0])  # Gunakan baris pertama sebagai header
-            return df
-    return pd.DataFrame()
-
-# Streamlit App
-st.title("📊 Dashboard Monitoring Data")
-
-# Pilih sheet
-sheets = get_sheets()
-if sheets:
-    selected_sheet = st.selectbox("Pilih Sheet:", sheets)
-else:
-    st.error("Tidak ada sheet yang tersedia.")
-
-# Ambil data jika sheet dipilih
-if selected_sheet:
-    df = fetch_data(selected_sheet)
-    
-    if not df.empty:
-        # Konversi tipe data
-        df["Waktu"] = pd.to_datetime(df["Waktu"], format="%H:%M:%S", errors='coerce')
-        numeric_columns = [col for col in df.columns if col not in ["ID", "Nama Alat", "Waktu"]]
-        df[numeric_columns] = df[numeric_columns].apply(pd.to_numeric, errors='coerce')
-        
-        # Pilih alat
-        alat_list = df["Nama Alat"].unique().tolist()
-        selected_alat = st.selectbox("Pilih Alat:", alat_list)
-        
-        # Filter data berdasarkan alat
-        filtered_df = df[df["Nama Alat"] == selected_alat]
-        st.write("### Data Alat yang Dipilih")
-        st.dataframe(filtered_df)
-        
-        # Grafik Time Series
-        st.write("### Grafik Time Series")
-        selected_columns = st.multiselect("Pilih data untuk ditampilkan:", numeric_columns, default=["Tegangan (V)"])
-        if selected_columns:
-            st.line_chart(filtered_df.set_index("Waktu")[selected_columns])
-        
-        # Korelasi antar parameter
-        st.write("### Korelasi Antar Parameter")
-        fig, ax = plt.subplots()
-        sns.heatmap(filtered_df[numeric_columns].corr(), annot=True, cmap="coolwarm", ax=ax)
-        st.pyplot(fig)
-        
-        # Deteksi Anomali
-        filtered_df["Anomali"] = (filtered_df["Tegangan (V)"] < 210) | (filtered_df["Tegangan (V)"] > 230)
-        anomali_df = filtered_df[filtered_df["Anomali"]]
-        if not anomali_df.empty:
-            st.warning("⚠ Ditemukan data anomali!")
-            st.dataframe(anomali_df)
-        else:
-            st.success("✅ Tidak ada anomali dalam data.")
-        
-        # Histogram Distribusi
-        st.write("### Histogram Tegangan & Arus")
-        fig, ax = plt.subplots(1, 2, figsize=(10, 4))
-        sns.histplot(filtered_df["Tegangan (V)"], bins=10, kde=True, ax=ax[0])
-        ax[0].set_title("Distribusi Tegangan (V)")
-        sns.histplot(filtered_df["Arus (A)"], bins=10, kde=True, ax=ax[1])
-        ax[1].set_title("Distribusi Arus (A)")
-        st.pyplot(fig)
+        df = pd.DataFrame(data[1:], columns=data[0])  # Gunakan baris pertama sebagai header
+        return df
     else:
-        st.error("Data tidak tersedia atau terjadi kesalahan dalam pengambilan data.")
+        st.error(f"Gagal mengambil data dari sheet: {sheet_name}")
+        return pd.DataFrame()
 
-# Fungsi untuk polling data real-time
-if st.button("Mulai Polling Data Realtime"):
-    st.write("Polling data real-time dimulai...")
+# Ambil semua sheet
+response = requests.get(SHEET_METADATA_URL)
+sheets = [sheet["properties"]["title"] for sheet in response.json().get("sheets", [])]
+
+# Pilih sheet yang akan ditampilkan
+selected_sheet = st.sidebar.selectbox("Pilih Sheet", sheets)
+
+# Placeholder untuk data dan visualisasi
+df = get_data(selected_sheet)
+
+if not df.empty:
+    # Konversi kolom numerik
+    for col in ["Tegangan (V)", "Arus (A)", "Daya Aktif (W)", "Energi Aktif (Wh)", "Frekuensi (Hz)", "Faktor Daya", "Daya Reaktif (VAR)", "Daya Semu (VA)"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    # Konversi waktu ke format datetime
+    if "Waktu" in df.columns:
+        df["Waktu"] = pd.to_datetime(df["Waktu"], format="%H:%M:%S", errors='coerce')
+
+    st.title("📊 Dashboard Analisis Data Sensor")
     
-    # Interval untuk memperbarui data setiap 10 detik
-    refresh_interval = st.empty()
-    refresh_interval.write("Data akan diperbarui setiap 10 detik...")
+    # *1. Menampilkan Tabel Data*
+    st.write("### Data Sensor")
+    st.data_editor(df.drop(columns=["ID"], errors='ignore'), hide_index=True)
     
-    # Gunakan st.cache_data untuk menyimpan data terakhir
-    @st.cache_data(ttl=10)  # Cache data selama 10 detik
-    def get_latest_data():
-        return fetch_data(selected_sheet)
+    # *2. Statistik Data*
+    st.write("### Statistik Data")
+    st.write(df.describe())
+
+    # *3. Grafik Time Series*
+    st.write("### Grafik Time Series")
+    selected_columns = st.multiselect("Pilih data untuk ditampilkan:", df.select_dtypes(include=["number"]).columns.tolist(), default=["Tegangan (V)"])
+    if selected_columns:
+        st.line_chart(df.set_index("Waktu")[selected_columns])
+    else:
+        st.warning("Pilih minimal satu parameter untuk ditampilkan di grafik.")
+
+    # *4. Pencarian dan Filter Data*
+    st.write("### Pencarian Data")
+    search_query = st.text_input("🔎 Cari berdasarkan Nama Alat:", "")
+    filtered_df = df[df["Nama Alat"].str.contains(search_query, case=False, na=False)]
+    st.data_editor(filtered_df.drop(columns=["ID"], errors='ignore'), hide_index=True, key="filtered_table")
     
-    # Loop untuk memperbarui data
-    while True:
-        latest_df = get_latest_data()
-        if not latest_df.empty:
-            latest_df["Waktu"] = pd.to_datetime(latest_df["Waktu"], format="%H:%M:%S", errors='coerce')
-            numeric_columns = [col for col in latest_df.columns if col not in ["ID", "Nama Alat", "Waktu"]]
-            latest_df[numeric_columns] = latest_df[numeric_columns].apply(pd.to_numeric, errors='coerce')
-            filtered_df = latest_df[latest_df["Nama Alat"] == selected_alat]
-            
-            st.write("### Data Terbaru")
-            st.dataframe(filtered_df)
-            
-            if selected_columns:
-                st.line_chart(filtered_df.set_index("Waktu")[selected_columns])
-            
-            fig, ax = plt.subplots()
-            sns.heatmap(filtered_df[numeric_columns].corr(), annot=True, cmap="coolwarm", ax=ax)
-            st.pyplot(fig)
-            
-            filtered_df["Anomali"] = (filtered_df["Tegangan (V)"] < 210) | (filtered_df["Tegangan (V)"] > 230)
-            anomali_df = filtered_df[filtered_df["Anomali"]]
-            if not anomali_df.empty:
-                st.warning("⚠ Ditemukan data anomali!")
-                st.dataframe(anomali_df)
-            else:
-                st.success("✅ Tidak ada anomali dalam data.")
-            
-            fig, ax = plt.subplots(1, 2, figsize=(10, 4))
-            sns.histplot(filtered_df["Tegangan (V)"], bins=10, kde=True, ax=ax[0])
-            ax[0].set_title("Distribusi Tegangan (V)")
-            sns.histplot(filtered_df["Arus (A)"], bins=10, kde=True, ax=ax[1])
-            ax[1].set_title("Distribusi Arus (A)")
-            st.pyplot(fig)
-        
-        time.sleep(10)  # Tunggu 10 detik sebelum memperbarui lagi
+    # *5. Heatmap Korelasi Antar Variabel*
+    st.write("### Korelasi Antar Parameter")
+    fig, ax = plt.subplots()
+    sns.heatmap(df.select_dtypes(include=["number"]).corr(), annot=True, cmap="coolwarm", ax=ax)
+    st.pyplot(fig)
+    
+    # *6. Deteksi Anomali Data*
+    df["Anomali"] = (df["Tegangan (V)"] < 210) | (df["Tegangan (V)"] > 230) | (df["Arus (A)"] < 0.025) | (df["Arus (A)"] > 0.045)
+    anomali_df = df[df["Anomali"]]
+    if not anomali_df.empty:
+        st.warning("⚠ Ditemukan data anomali!")
+        st.dataframe(anomali_df)
+    else:
+        st.success("✅ Tidak ada anomali dalam data.")
+    
+    # *7. Histogram Distribusi Tegangan & Arus*
+    st.write("### Histogram Tegangan & Arus")
+    fig, ax = plt.subplots(1, 2, figsize=(10, 4))
+    sns.histplot(df["Tegangan (V)"], bins=10, kde=True, ax=ax[0])
+    ax[0].set_title("Distribusi Tegangan (V)")
+    sns.histplot(df["Arus (A)"], bins=10, kde=True, ax=ax[1])
+    ax[1].set_title("Distribusi Arus (A)")
+    st.pyplot(fig)
