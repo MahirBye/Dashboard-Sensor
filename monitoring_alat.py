@@ -36,7 +36,14 @@ def get_data(sheet_name):
 
 # Ambil semua sheet
 response = requests.get(SHEET_METADATA_URL)
-sheets = [sheet["properties"]["title"] for sheet in response.json().get("sheets", [])]
+
+if response.status_code == 200:
+    sheets = [sheet["properties"]["title"] for sheet in response.json().get("sheets", [])]
+    if not sheets:
+        st.error("Tidak ada sheet yang tersedia di Google Sheets!")
+else:
+    st.error("Gagal mengambil daftar sheet dari Google Sheets.")
+
 
 # Pilih sheet yang akan ditampilkan
 selected_sheet = st.sidebar.selectbox("Pilih Sheet", sheets)
