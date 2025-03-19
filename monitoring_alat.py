@@ -34,17 +34,30 @@ def get_data(sheet_name):
         st.error(f"Gagal mengambil data dari sheet: {sheet_name}")
         return pd.DataFrame()
 
-
 # Ambil semua sheet
 response = requests.get(SHEET_METADATA_URL)
 sheets = [sheet["properties"]["title"] for sheet in response.json().get("sheets", [])]
-print(response.json())
 
-# Pilih sheet yang akan ditampilkan
+# Header dengan Link
+st.markdown("""
+    <h1 style='text-align: center; color: brown;'>Real-Time Monitoring</h1>
+    <p style='text-align: center;'>
+        <a href='https://streamlit.app' target='_blank' style='color: white; background-color: brown; padding: 10px; border-radius: 5px; text-decoration: none;'>
+            https://streamlit
+        </a>
+    </p>
+""", unsafe_allow_html=True)
+
+# Sidebar untuk memilih sheet
 selected_sheet = st.sidebar.selectbox("Pilih Sheet", sheets)
-
-# Placeholder untuk data dan visualisasi
 df = get_data(selected_sheet)
+
+# Tombol Navigasi
+col1, col2 = st.columns([1, 1])
+with col1:
+    show_data = st.button("DATA", key="show_data")
+with col2:
+    show_graph = st.button("GRAFIK", key="show_graph")
 
 if not df.empty:
     # Konversi kolom numerik
@@ -55,51 +68,22 @@ if not df.empty:
     # Konversi waktu ke format datetime
     if "Waktu" in df.columns:
         df["Waktu"] = pd.to_datetime(df["Waktu"], format="%H:%M:%S", errors='coerce')
-
-    st.title("📊 Dashboard Analisis Data Sensor")
     
-    # *1. Menampilkan Tabel Data*
-    st.write("### Data Sensor")
-    st.data_editor(df.drop(columns=["ID"], errors='ignore'), hide_index=True)
+    if show_data:
+        st.write("### Data Sensor")
+        st.data_editor(df.drop(columns=["ID"], errors='ignore'), hide_index=True)
+        st.write("### Statistik Data")
+        st.write(df.describe())
     
-    # *2. Statistik Data*
-    st.write("### Statistik Data")
-    st.write(df.describe())
-
-    # *3. Grafik Time Series*
-    st.write("### Grafik Time Series")
-    selected_columns = st.multiselect("Pilih data untuk ditampilkan:", df.select_dtypes(include=["number"]).columns.tolist(), default=["Tegangan (V)"])
-    if selected_columns:
-        st.line_chart(df.set_index("Waktu")[selected_columns])
-    else:
-        st.warning("Pilih minimal satu parameter untuk ditampilkan di grafik.")
-
-    # *4. Pencarian dan Filter Data*
-    st.write("### Pencarian Data")
-    search_query = st.text_input("🔎 Cari berdasarkan Nama Alat:", "")
-    filtered_df = df[df["Nama Alat"].str.contains(search_query, case=False, na=False)]
-    st.data_editor(filtered_df.drop(columns=["ID"], errors='ignore'), hide_index=True, key="filtered_table")
-    
-    # *5. Heatmap Korelasi Antar Variabel*
-    st.write("### Korelasi Antar Parameter")
-    fig, ax = plt.subplots()
-    sns.heatmap(df.select_dtypes(include=["number"]).corr(), annot=True, cmap="coolwarm", ax=ax)
-    st.pyplot(fig)
-    
-    # *6. Deteksi Anomali Data*
-    df["Anomali"] = (df["Tegangan (V)"] < 210) | (df["Tegangan (V)"] > 230) | (df["Arus (A)"] < 0.025) | (df["Arus (A)"] > 0.045)
-    anomali_df = df[df["Anomali"]]
-    if not anomali_df.empty:
-        st.warning("⚠ Ditemukan data anomali!")
-        st.dataframe(anomali_df)
-    else:
-        st.success("✅ Tidak ada anomali dalam data.")
-    
-    # *7. Histogram Distribusi Tegangan & Arus*
-    st.write("### Histogram Tegangan & Arus")
-    fig, ax = plt.subplots(1, 2, figsize=(10, 4))
-    sns.histplot(df["Tegangan (V)"], bins=10, kde=True, ax=ax[0])
-    ax[0].set_title("Distribusi Tegangan (V)")
-    sns.histplot(df["Arus (A)"], bins=10, kde=True, ax=ax[1])
-    ax[1].set_title("Distribusi Arus (A)")
-    st.pyplot(fig)
+    if show_graph:
+        st.write("### Grafik Time Series")
+        selected_columns = st.multiselect("Pilih data untuk ditampilkan:", df.select_dtypes(include=["number"]).columns.tolist(), default=["Tegangan (V)"])
+        if selected_columns:
+            st.line_chart(df.set_index("Waktu")[selected_columns])
+        else:
+            st.warning("Pilih minimal satu parameter untuk ditampilkan di grafik.")
+        
+        st.write("### Korelasi Antar Parameter")
+        fig, ax = plt.subplots()
+        sns.heatmap(df.select_dtypes(include=["number"]).corr(), annot=True, cmap="coolwarm", ax=ax)
+        st.pyplot(fig)
