@@ -64,7 +64,7 @@ if not df.empty:
 
     # Konversi waktu ke format datetime
     if "Waktu" in df.columns:
-        df["Waktu"] = pd.to_datetime(df["Waktu"], format="%H:%M:%S", errors='coerce')[11:]
+        df["Waktu"] = df["Waktu"]
     
     if show_data:
         st.write("### Data Sensor")
