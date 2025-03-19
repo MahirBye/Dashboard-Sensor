@@ -42,9 +42,6 @@ sheets = [sheet["properties"]["title"] for sheet in response.json().get("sheets"
 st.markdown("""
     <h1 style='text-align: center; color: brown;'>Real-Time Monitoring</h1>
     <p style='text-align: center;'>
-        <a href='https://streamlit.app' target='_blank' style='color: white; background-color: brown; padding: 10px; border-radius: 5px; text-decoration: none;'>
-            https://streamlit
-        </a>
     </p>
 """, unsafe_allow_html=True)
 
